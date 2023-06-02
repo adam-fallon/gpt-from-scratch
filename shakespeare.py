@@ -16,6 +16,16 @@ eval_iters = 200
 n_embed = 32
 # ----------
 
+
+class FeedForward(nn.Module):
+    def __init__(self, n_embed):
+        super().__init__()
+        self.net = nn.Sequential(nn.Linear(n_embed, n_embed), nn.ReLU())
+
+    def forward(self, x):
+        return self.net(x)
+
+
 class Head(nn.Module):
     def __init__(self, head_size):
         super().__init__()
@@ -38,20 +48,23 @@ class Head(nn.Module):
         out = wei @ v
         return out
 
+
 class MultiHeadAttention(nn.Module):
     def __init__(self, num_heads, head_size):
         super().__init__()
         self.heads = nn.ModuleList([Head(head_size) for _ in range(num_heads)])
-    
+
     def forward(self, x):
         return torch.cat([h(x) for h in self.heads], dim=-1)
+
 
 class BigramLanguageModel(nn.Module):
     def __init__(self, vocab_size):
         super().__init__()
         self.token_embedding_table = nn.Embedding(vocab_size, n_embed)
         self.position_embedding_table = nn.Embedding(block_size, n_embed)
-        self.sa_heads = MultiHeadAttention(4, n_embed//4)
+        self.sa_heads = MultiHeadAttention(4, n_embed // 4)
+        self.ffwd = FeedForward(n_embed)
         self.lm_head = nn.Linear(n_embed, vocab_size)
 
     def forward(self, idx, targets=None):
@@ -59,11 +72,12 @@ class BigramLanguageModel(nn.Module):
         # idx and targets are both (B, T) tensor of integers
         # Logits are effectively scores for the likelehood of a token occuring
         token_emb = self.token_embedding_table(idx)  # (B, T, C)
-        pos_emb = self.position_embedding_table( 
+        pos_emb = self.position_embedding_table(
             torch.arange(T, device=device)
         )  # (T, C)
         x = token_emb + pos_emb  # (B,T,C)
         x = self.sa_heads(x)
+        x = self.ffwd(x)
         logits = self.lm_head(x)  # (B, T, vocab_size)
 
         if targets is None:
