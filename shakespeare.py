@@ -6,16 +6,16 @@ import torch.nn.functional as F
 torch.manual_seed(1337)
 
 # hyperparams
-batch_size = 64  # how many independent sequences will we process in parallel
-block_size = 256  # what is the maximum context length for predictions
+batch_size = 8  # how many independent sequences will we process in parallel
+block_size = 32  # what is the maximum context length for predictions
 max_iters = 5000
 eval_interval = 300
-learning_rate = 3e-4
+learning_rate = 1e-3
 device = "cuda" if torch.cuda.is_available() else "cpu"
 eval_iters = 200
-n_embed = 384
-n_layer = 6
-n_head = 6
+n_embed = 32
+n_layer = 4
+n_head = 4
 dropout = 0.2
 # ----------
 
@@ -262,6 +262,7 @@ def main():
 
     context = torch.zeros((1, 1), dtype=torch.long, device=device)
     print(decode(m.generate(context, max_new_tokens=500)[0].tolist()))
+    torch.save(model, "shakespeare.bin")
 
 
 main()
